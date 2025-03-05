@@ -1,13 +1,16 @@
-const mongoose = require('mongoose');
+const AWS = require('aws-sdk');
+const mysql = require('mysql2/promise');
 
-const db = async () => {
-    try {
-        mongoose.set('strictQuery', false)
-        await mongoose.connect(process.env.MONGO_URL)
-        console.log('Db Connected')
-    } catch (error) {
-        console.log('DB Connection Error');
-    }
-}
+AWS.config.update({ region: 'us-east-1' });
 
-module.exports = {db}
+const pool = mysql.createPool({
+  host: process.env.RDS_HOST,
+  user: process.env.RDS_USER,
+  password: process.env.RDS_PASSWORD,
+  database: process.env.RDS_DB,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+module.exports = pool;
