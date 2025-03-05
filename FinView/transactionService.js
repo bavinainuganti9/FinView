@@ -1,21 +1,26 @@
-import axios from 'axios';
+const AWS = require('aws-sdk');
+const pool = require('./db');
 
-const API_URL = 'https://your-api-url.com/api/transactions/';
+const s3 = new AWS.S3();
 
-const saveIncome = (income) => {
-    return axios.post(API_URL + 'income', { income });
-};
+async function saveTransaction(data) {
+  try {
+    const [result] = await pool.execute('INSERT INTO transactions (amount, category) VALUES (?, ?)', [data.amount, data.category]);
+    return result.insertId;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Database Error');
+  }
+}
 
-const saveExpense = (expense) => {
-    return axios.post(API_URL + 'expense', expense);
-};
+async function uploadTransactionFile(fileBuffer, fileName) {
+  const params = {
+    Bucket: process.env.S3_BUCKET,
+    Key: `transactions/${fileName}`,
+    Body: fileBuffer,
+    ContentType: 'application/json'
+  };
+  return s3.upload(params).promise();
+}
 
-const getExpenses = () => {
-    return axios.get(API_URL + 'expenses').then(response => response.data);
-};
-
-export default {
-    saveIncome,
-    saveExpense,
-    getExpenses,
-};
+module.exports = { saveTransaction, uploadTransactionFile };
